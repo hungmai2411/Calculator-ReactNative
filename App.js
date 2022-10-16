@@ -1,5 +1,4 @@
 import { StatusBar } from 'expo-status-bar';
-import CalculatorScreen from './src/screens/calculator_screen';
 import { React, Component, useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
@@ -44,14 +43,15 @@ export default class App extends Component {
   }
 
   buttonPressed = (s) => {
+    let text = this.state.userInput;
+
     if (s == '=') {
       return this.calculateResult();
     } else if (s == 'DEL') {
       return this.deleteLastInput();
     } else if (s == 'C') {
       return this.deleteUserInput();
-    } else if (isOperator(s)) {
-      let text = this.state.userInput;
+    } else if (isOperator(s) && text[text.length - 1] != '%') {
 
       if (s == text[text.length - 1]) {
         console.log('2');
