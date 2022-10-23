@@ -1,6 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { React, Component, useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { View, StyleSheet, Text, TouchableOpacity, TextInput, FlatList } from 'react-native';
+import { Calculation } from './calculation';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default class App extends Component {
   constructor() {
@@ -8,23 +12,46 @@ export default class App extends Component {
     this.state = {
       userInput: "",
       userAnswer: "",
+      calculations: [],
+      isShowHistory: false,
     };
   }
 
+  loadCalculation() {
+    this.setState({
+      isShowHistory: !this.state.isShowHistory,
+    });
+    for (let i = 0; i < this.state.calculations.length; i++) {
+      console.log(this.state.calculations[i]);
+    }
+  }
+
+  save(result) {
+    let cal = new Calculation(this.state.userInput, result);
+
+    this.setState({
+      calculations: [...this.state.calculations, cal],
+    });
+  }
+
   calculateResult() {
-    let text = this.state.userInput;
+    try {
+      let text = this.state.userInput;
 
-    text = text.replaceAll('x', '*');
-    text = text.replaceAll('%', '/100');
+      text = text.replaceAll('x', '*');
+      text = text.replaceAll('%', '/100');
 
-    if (isOperator(text[text.length - 1])) {
-      this.setState({
-        userAnswer: text,
-      });
-    } else {
-      this.setState({
-        userAnswer: eval(text),
-      });
+      if (isOperator(text[text.length - 1])) {
+        alert('Vui lòng nhập đúng định dạng');
+      } else {
+        this.save(eval(text));
+
+        this.setState({
+          userAnswer: eval(text),
+        });
+      }
+    } catch (error) {
+      alert('Vui lòng nhập đúng định dạng');
     }
   }
 
@@ -42,6 +69,20 @@ export default class App extends Component {
     });
   }
 
+  onChangeText = (s) => {
+    console.log(s);
+    console.log(this.userInput);
+    this.setState({
+      userInput: s
+    });
+  }
+
+  deleteHistory = () => {
+    this.setState({
+      calculations: []
+    });
+  }
+
   buttonPressed = (s) => {
     let text = this.state.userInput;
 
@@ -51,6 +92,19 @@ export default class App extends Component {
       return this.deleteLastInput();
     } else if (s == 'C') {
       return this.deleteUserInput();
+    } else if (s == '()') {
+      console.log(text);
+
+      let lastBracketOpen = text.lastIndexOf('(');
+      let lastBracketClose = text.lastIndexOf(')');
+
+      if (lastBracketOpen == -1) {
+        s = '(';
+      } else if (lastBracketOpen > lastBracketClose) {
+        s = ')';
+      } else {
+        s = '(';
+      }
     } else if (isOperator(s) && text[text.length - 1] != '%') {
 
       if (s == text[text.length - 1]) {
@@ -73,14 +127,13 @@ export default class App extends Component {
   }
 
 
-
   render() {
     let buttons = [
       'C', 'DEL', '%', '/',
       '9', '8', '7', 'x',
       '6', '5', '4', '-',
       '3', '2', '1', '+',
-      '.', '0', '', '=',
+      '.', '0', '()', '=',
     ];
 
     let rows = [];
@@ -88,48 +141,15 @@ export default class App extends Component {
     let row = [];
 
     for (let i = 0; i < buttons.length; i++) {
-      if (i == 0) {
-        row.push(
-          <TouchableOpacity
-            style={styles.btnC}
-            key={buttons[i]}
-            onPress={() => this.buttonPressed(buttons[i])}
-          >
-            <Text style={styles.textOperator}>{buttons[i]}</Text>
-          </TouchableOpacity>
-        );
-      } else if (i == 1) {
-        row.push(
-          <TouchableOpacity
-            style={styles.btnDEL}
-            key={buttons[i]}
-            onPress={() => this.buttonPressed(buttons[i])}
-          >
-            <Text style={styles.textOperator}>{buttons[i]}</Text>
-
-          </TouchableOpacity>
-        );
-      } else if (isOperator(buttons[i])) {
-        row.push(
-          <TouchableOpacity
-            key={buttons[i]}
-            style={styles.btnOperator}
-            onPress={() => this.buttonPressed(buttons[i])}
-          >
-            <Text style={styles.textOperator}>{buttons[i]}</Text>
-          </TouchableOpacity>
-        );
-      } else {
-        row.push(
-          <TouchableOpacity
-            style={styles.btn}
-            key={buttons[i]}
-            onPress={() => this.buttonPressed(buttons[i])}
-          >
-            <Text style={styles.text}>{buttons[i]}</Text>
-          </TouchableOpacity>
-        );
-      }
+      row.push(
+        <TouchableOpacity
+          style={isOperator(buttons[i]) ? styles.btnOperator : i == 0 ? styles.btnC : (i == 1) ? styles.btnDEL : styles.btn}
+          key={buttons[i]}
+          onPress={() => this.buttonPressed(buttons[i])}
+        >
+          <Text style={isOperator(buttons[i]) ? styles.textOperator : styles.text}>{buttons[i]}</Text>
+        </TouchableOpacity>
+      );
 
       if (j == 3) {
         rows.push(<View key={i} style={styles.row}>{row}</View>)
@@ -140,18 +160,61 @@ export default class App extends Component {
       j++;
     }
 
+
+
     return (
       <View style={styles.container}>
         <View style={styles.calculation}>
-          <Text style={styles.calculationText}>{this.state.userInput}</Text>
+          <TextInput multiline={true} defaultValue={this.state.userInput} showSoftInputOnFocus={false} onChangeText={this.onChangeText} style={styles.calculationText}></TextInput>
         </View>
         <View style={styles.result}>
-          <Text style={styles.resultText}>{this.state.userAnswer}</Text>
+          <TextInput showSoftInputOnFocus={false} style={styles.resultText}>{this.state.userAnswer}</TextInput>
         </View>
-        <View style={styles.buttons}>
-          {rows}
+        <View style={styles.history}>
+          <TouchableOpacity onPress={() => this.loadCalculation()}>
+            <>{
+              this.state.isShowHistory ? <FontAwesome name="calculator" size={40} color="black" />
+                : <FontAwesome name="history" size={40} color="black" />
+            }
+            </>
+          </TouchableOpacity>
         </View>
-      </View>
+        <>{
+          !this.state.isShowHistory ?
+            <View style={styles.buttons}>
+              {rows}
+            </View> :
+            <View style={styles.listHistory} >
+              <FlatList
+                style={styles.list}
+                data={this.state.calculations}
+                renderItem={({ item }) => (
+                  <View style={styles.item}>
+                    <TouchableOpacity
+                      onPress={() => this.buttonPressed(item.calculation)}
+
+                    >
+                      <Text style={styles.calculationHistory}>{item.calculation}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => this.buttonPressed(item.result)}
+                    >
+                      <Text style={styles.resultHistory}>={item.result}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+              <View>
+                <TouchableOpacity style={styles.delHistory}
+                  onPress={() => this.deleteHistory()}>
+                  <Text >Delete History</Text>
+                </TouchableOpacity>
+              </View>
+            </View>}
+        </>
+
+      </View >
     );
   }
 }
@@ -164,9 +227,30 @@ function isOperator(s) {
 }
 
 const styles = StyleSheet.create({
+  delHistory: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: '#cdcbcb',
+    padding: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
   container: {
     flex: 1,
     backgroundColor: '#D0C5E9',
+  },
+  list: {
+    // alignItems: 'flex-end',
+    flexGrow: 1,
+    marginVertical: 20,
+    marginRight: 10,
+  },
+
+  item: {
+    flexGrow: 1,
+    alignItems: 'flex-end',
+    marginBottom: 10,
   },
   calculation: {
     flex: 2,
@@ -177,10 +261,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'flex-end',
   },
+  calculationHistory: {
+    alignItems: 'flex-end',
+    fontSize: 20,
+  },
+  resultHistory: {
+    color: 'green',
+    alignItems: 'flex-end',
+    fontSize: 20,
+  },
+  history: {
+    marginLeft: 10,
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+  },
   buttons: {
-    flex: 7,
-    //margin: 5,
+    flex: 6,
     justifyContent: 'space-around',
+    marginTop: 10,
+  },
+
+  listHistory: {
+    flex: 6,
+    backgroundColor: '#EDE7F6',
+    borderTopStartRadius: 20,
+    borderTopEndRadius: 20,
+    marginTop: 10,
   },
   textOperator: {
     color: 'white',
