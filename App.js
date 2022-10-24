@@ -111,6 +111,8 @@ export default class App extends Component {
       let lastBracketOpen = text.lastIndexOf('(');
       let lastBracketClose = text.lastIndexOf(')');
 
+      console.log(lastBracketOpen);
+
       if (lastBracketOpen == -1) {
         s = '(';
       }
@@ -123,7 +125,8 @@ export default class App extends Component {
 
       if (s == '(') {
         var last = text[text.length - 1];
-        if (last != 'x' && !isOperator(last)) {
+
+        if (last != 'x' && !isOperator(last) && text != '') {
           s = 'x' + s;
         }
       } else {
@@ -153,7 +156,7 @@ export default class App extends Component {
     // nếu số thì xử lí cho nó auto * 
     if (this.state.hasPercent) {
       this.setState({
-        userInput: !isOperator(s) ? this.state.userInput + 'x' + s : this.state.userInput + s,
+        userInput: !isOperator(s) && s != ')' ? this.state.userInput + 'x' + s : this.state.userInput + s,
         hasPercent: false,
       });
       return;
