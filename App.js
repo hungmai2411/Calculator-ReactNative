@@ -14,6 +14,8 @@ export default class App extends Component {
       userAnswer: "",
       calculations: [],
       isShowHistory: false,
+      hasPercent: false,
+      hasCloseBracket: false,
     };
   }
 
@@ -52,20 +54,22 @@ export default class App extends Component {
       }
     } catch (error) {
       alert('Vui lòng nhập đúng định dạng');
+      this.setState({
+        hasPercent: false,
+        hasCloseBracket: false,
+      });
     }
   }
 
   deleteLastInput = () => {
-    let text = this.state.userInput.substring(0, this.state.userInput.length - 1);
-
-    this.setState({
-      userInput: text
-    });
+    return this.state.userInput.substring(0, this.state.userInput.length - 1);
   }
 
   deleteUserInput = () => {
     this.setState({
-      userInput: ''
+      userInput: '',
+      hasPercent: false,
+      hasCloseBracket: false,
     });
   }
 
@@ -89,31 +93,53 @@ export default class App extends Component {
     if (s == '=') {
       return this.calculateResult();
     } else if (s == 'DEL') {
-      return this.deleteLastInput();
+      var tmp = this.deleteLastInput();
+      this.setState({
+        userInput: tmp,
+      });
+      return;
     } else if (s == 'C') {
       return this.deleteUserInput();
-    } else if (s == '()') {
-      console.log(text);
-
+    } else if (s == '%') {
+      this.setState(
+        {
+          hasPercent: !this.state.hasPercent,
+        }
+      );
+    }
+    else if (s == '()') {
       let lastBracketOpen = text.lastIndexOf('(');
       let lastBracketClose = text.lastIndexOf(')');
 
       if (lastBracketOpen == -1) {
         s = '(';
-      } else if (lastBracketOpen > lastBracketClose) {
+      }
+
+      if (lastBracketOpen > lastBracketClose) {
         s = ')';
       } else {
         s = '(';
       }
-    } else if (isOperator(s) && text[text.length - 1] != '%') {
 
+      if (s == '(') {
+        var last = text[text.length - 1];
+        if (last != 'x' && !isOperator(last)) {
+          s = 'x' + s;
+        }
+      } else {
+        this.setState(
+          {
+            hasCloseBracket: !this.state.hasCloseBracket,
+          }
+        );
+      }
+    }
+    // trường hợp s là toán tử
+    else if (isOperator(s) && text[text.length - 1] != '%') {
       if (s == text[text.length - 1]) {
-        console.log('2');
         return;
       }
       if (isOperator(text[text.length - 1])) {
-        console.log('3');
-
         this.setState({
           userInput: this.state.userInput.substring(0, this.state.userInput.length - 1) + s
         });
@@ -121,11 +147,30 @@ export default class App extends Component {
         return;
       }
     }
+
+    console.log(this.state.hasCloseBracket);
+    // nếu có dấu % thì sẽ xét xem kí tự nhập vào có phải là toán tử hay số
+    // nếu số thì xử lí cho nó auto * 
+    if (this.state.hasPercent) {
+      this.setState({
+        userInput: !isOperator(s) ? this.state.userInput + 'x' + s : this.state.userInput + s,
+        hasPercent: false,
+      });
+      return;
+    }
+
+    if (this.state.hasCloseBracket) {
+      this.setState({
+        userInput: !isOperator(s) ? this.state.userInput + 'x' + s : this.state.userInput + s,
+        hasCloseBracket: false,
+      });
+      return;
+    }
+
     this.setState({
-      userInput: this.state.userInput + s
+      userInput: this.state.userInput + s,
     });
   }
-
 
   render() {
     let buttons = [
@@ -133,7 +178,7 @@ export default class App extends Component {
       '9', '8', '7', 'x',
       '6', '5', '4', '-',
       '3', '2', '1', '+',
-      '.', '0', '()', '=',
+      '()', '0', '.', '=',
     ];
 
     let rows = [];
@@ -159,8 +204,6 @@ export default class App extends Component {
       }
       j++;
     }
-
-
 
     return (
       <View style={styles.container}>
